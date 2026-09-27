@@ -1,0 +1,56 @@
+#include <Servo.h>
+
+Servo solarServo;
+
+// Pins
+const int sensorLinks = A0;
+const int sensorRechts = A1;
+const int servoPin = 9;
+
+// Startposition des Servos
+int position = 90;
+
+// Wie groß der Unterschied sein muss,
+// bevor der Servo reagiert
+const int toleranz = 40;
+
+// Wie viele Grad pro Bewegung
+const int schritt = 1;
+
+void setup() {
+  solarServo.attach(servoPin);
+
+  // Servo in die Mitte fahren
+  solarServo.write(position);
+
+  delay(500);
+}
+
+void loop() {
+
+  // Lichtsensoren auslesen
+  int links = analogRead(sensorLinks);
+  int rechts = analogRead(sensorRechts);
+
+  // Differenz zwischen den Sensoren
+  int differenz = links - rechts;
+
+  // Wenn links deutlich heller ist
+  if (differenz > toleranz) {
+    position += schritt;
+  }
+
+  // Wenn rechts deutlich heller ist
+  else if (differenz < -toleranz) {
+    position -= schritt;
+  }
+
+  // Servo auf 0–180 Grad begrenzen
+  position = constrain(position, 0, 180);
+
+  // Servo bewegen
+  solarServo.write(position);
+
+  // Kleine Pause, damit der Servo nicht ständig ruckelt
+  delay(50);
+}
