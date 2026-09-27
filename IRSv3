@@ -1,0 +1,64 @@
+#include <Servo.h>
+const int sensorPin = 2;
+const int sensorPin2 = 3;
+const int ledPin = 13;
+Servo IRS;
+
+void setup() {
+  // put your setup code here, to run once:
+  IRS.attach(9); // pin D9
+
+  pinMode(ledPin, OUTPUT);
+  pinMode(sensorPin, INPUT);
+  Serial.begin(9600); // For debugging
+}
+#define HIGH 0x10
+int motorPosition = 0;
+int direction = 1; // 1 means we go up (+10), -1 means we go down (-10)
+
+void loop()
+{
+  // put your main code here, to run repeatedly:
+
+  // Read the digital output from the sensor
+  int sensorValue = digitalRead(sensorPin); // d1
+
+  int sensorValue2 = digitalRead(sensorPin2); // d2
+  
+  // HIGH=NOT LIGHT     LOW=LIGHT
+  
+   if (sensorValue == HIGH)
+
+  
+    
+
+
+
+
+  if (sensorValue == LOW && sensorValue2 == LOW ) {
+    Serial.println("Light, both LED ON");
+    IRS.write(motorPosition);
+  } else {  
+    Serial.println("Light, one or two LED is OFF");
+    if (direction == 1) {
+      motorPosition = motorPosition + 10;
+    } else {
+      motorPosition = motorPosition - 10;
+    }
+
+    if (motorPosition > 180) {
+      direction = -1;  
+      motorPosition = motorPosition - 10;
+    }
+    if (motorPosition < 0)  {
+      direction = 1;
+      motorPosition = motorPosition + 10;
+
+    }
+    if (sensorValue)
+    IRS.write(motorPosition);
+  } 
+  
+  delay(100); // Short delay
+}
+
