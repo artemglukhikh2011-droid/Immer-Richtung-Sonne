@@ -1,0 +1,52 @@
+#include <Servo.h>
+
+const int ldrLeftPin  = A0;
+const int ldrRightPin = A1;
+const int servoPin    = 9;
+
+const int STEP       = 1;    // Grad pro Schritt (klein = sanft)
+const int TOLERANCE  = 30;   // Unterschied, ab dem gedreht wird (gegen Zittern)
+const int DARK_LIMIT = 80;   // darunter ist es zu dunkel (Nacht)
+const int REST_ANGLE = 90;   // Ruheposition
+
+Servo panelServo;
+int motorPosition = REST_ANGLE;
+
+// Mehrfach messen und mitteln, das glättet Rauschen
+int readAverage(int pin) {
+  long sum = 0;
+  for (int i = 0; i < 10; i++) {
+    sum += analogRead(pin);
+    delay(2);
+  }
+  return sum / 10;
+}
+
+void setup() {
+  Serial.begin(9600);
+  panelServo.attach(servoPin);
+  panelServo.write(motorPosition);
+}
+
+void loop() {
+  int left  = readAverage(ldrLeftPin);
+  int right = readAverage(ldrRightPin);
+  int diff  = left - right;
+
+  Serial.print("L: "); Serial.print(left);
+  Serial.print("  R: "); Serial.print(right);
+  Serial.print("  Diff: "); Serial.println(diff);
+
+  if (left < DARK_LIMIT && right < DARK_LIMIT) {
+    // Zu dunkel: nichts tun (oder langsam zur Ruheposition fahren)
+  } else if (diff > TOLERANCE) {
+    motorPosition += STEP;      // links heller
+  } else if (diff < -TOLERANCE) {
+    motorPosition -= STEP;      // rechts heller
+  }
+  // sonst: Unterschied klein genug, Position halten
+
+  motorPosition = constrain(motorPosition, 0, 180);
+  panelServo.write(motorPosition);
+  delay(50);
+}
