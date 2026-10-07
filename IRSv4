@@ -1,0 +1,95 @@
+#include <Servo.h>
+
+const int sensorPin1 = 2;
+const int sensorPin2 = 3;
+const int ledPin = 13;
+Servo IRS;
+
+const int minPos = 10;
+const int maxPos = 170;
+const int stepSize = 1;
+const int maxSweeps = 2;       // Anzahl Durchgänge ohne Licht bis Stopp
+
+enum State { SUCHEN, AUSGERICHTET, SCHLAFEN };
+State state = SUCHEN;
+
+int motorPosition = 90;
+int direction = 1;             // 1 = aufwärts, -1 = abwärts
+int sweepCount = 0;            // gezählte Durchgänge ohne Licht
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  pinMode(sensorPin1, INPUT);
+  pinMode(sensorPin2, INPUT);
+  Serial.begin(9600);
+
+  IRS.attach(9);
+  IRS.write(motorPosition);
+}
+
+void loop() {
+  bool light1 = (digitalRead(sensorPin1) == LOW);   // LOW = Licht
+  bool light2 = (digitalRead(sensorPin2) == LOW);
+  bool bothLight = light1 && light2;
+  bool anyLight  = light1 || light2;
+
+  switch (state) {
+
+    case SUCHEN:
+      if (bothLight) {
+        state = AUSGERICHTET;
+        sweepCount = 0;
+        digitalWrite(ledPin, HIGH);
+        Serial.println("Ausgerichtet");
+        break;
+      }
+
+      motorPosition += direction * stepSize;
+
+      // Am Ende des Bereichs: Richtung wechseln, Durchgang zählen
+      if (motorPosition >= maxPos) {
+        motorPosition = maxPos;
+        direction = -1;
+        sweepCount++;
+      } else if (motorPosition <= minPos) {
+        motorPosition = minPos;
+        direction = 1;
+        sweepCount++;
+      }
+
+      IRS.write(motorPosition);
+
+      // Wenn zwischendurch irgendein Sensor Licht sieht,
+      // ist die Sonne da: Zähler zurücksetzen
+      if (anyLight) {
+        sweepCount = 0;
+      }
+
+      if (sweepCount >= maxSweeps) {
+        state = SCHLAFEN;
+        digitalWrite(ledPin, LOW);
+        Serial.println("Kein Licht: Schlafmodus");
+      }
+      break;
+
+    case AUSGERICHTET:
+      // Servo bleibt stehen. Wenn Licht verloren geht: wieder suchen
+      if (!bothLight) {
+        state = SUCHEN;
+        digitalWrite(ledPin, LOW);
+        Serial.println("Licht verloren: suche");
+      }
+      break;
+
+    case SCHLAFEN:
+      // Servo bleibt stehen. Aufwachen, sobald ein Sensor Licht sieht
+      if (anyLight) {
+        state = SUCHEN;
+        sweepCount = 0;
+        Serial.println("Licht erkannt: aufwachen");
+      }
+      break;
+  }
+
+  delay(30);
+}
